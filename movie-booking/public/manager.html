@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CineVerse — Manager Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --gold: #c9a84c; --gold-light: #e8c878; --dark: #0a0a0f; --dark2: #12121a;
+    --dark3: #1a1a26; --card: #1e1e2e; --border: rgba(201,168,76,0.15);
+    --text: #e8e8f0; --text-dim: #8888a8; --red: #e85555; --green: #55e8a0;
+    --blue: #5588e8; --purple: #8855e8;
+    --sidebar: 260px;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--dark); color: var(--text); min-height: 100vh; display: flex; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: var(--sidebar); background: var(--dark2); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+  }
+  .sidebar-logo {
+    padding: 24px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .sidebar-logo-icon { font-size: 28px; width: 44px; height: 44px; background: linear-gradient(135deg, var(--gold), #b8862a); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+  .sidebar-logo-text { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; color: var(--gold); }
+  .sidebar-logo-sub { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+
+  .sidebar-nav { flex: 1; padding: 20px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .nav-section { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-dim); padding: 8px 10px; margin-top: 12px; }
+  .nav-item {
+    padding: 11px 14px; border-radius: 10px; cursor: pointer;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 0.9rem; font-weight: 500; color: var(--text-dim);
+    transition: all 0.2s; border: none; background: none; width: 100%; text-align: left;
+  }
+  .nav-item:hover { background: var(--dark3); color: var(--text); }
+  .nav-item.active { background: rgba(201,168,76,0.12); color: var(--gold); }
+  .nav-item .nav-icon { width: 20px; text-align: center; font-size: 1rem; }
+  .nav-badge { margin-left: auto; background: var(--gold); color: var(--dark); font-size: 0.7rem; padding: 2px 7px; border-radius: 10px; font-weight: 700; }
+
+  .sidebar-bottom { padding: 16px 12px; border-top: 1px solid var(--border); }
+  .user-info { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: var(--dark3); margin-bottom: 8px; }
+  .user-avatar { width: 36px; height: 36px; background: linear-gradient(135deg, var(--gold), #b8862a); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 700; color: var(--dark); }
+  .user-name { font-weight: 600; font-size: 0.85rem; }
+  .user-role { font-size: 0.7rem; color: var(--gold); text-transform: uppercase; letter-spacing: 1px; }
+  .btn-logout { width: 100%; padding: 10px; background: rgba(232,85,85,0.08); border: 1px solid rgba(232,85,85,0.2); border-radius: 8px; color: var(--red); font-family: 'DM Sans', sans-serif; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+  .btn-logout:hover { background: rgba(232,85,85,0.15); }
+
+  /* MAIN */
+  .main { margin-left: var(--sidebar); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+  .topbar {
+    padding: 20px 32px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--dark2); position: sticky; top: 0; z-index: 50;
+  }
+  .topbar-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; }
+  .topbar-sub { font-size: 0.82rem; color: var(--text-dim); margin-top: 2px; }
+
+  .btn-gold {
+    padding: 10px 20px; background: linear-gradient(135deg, var(--gold), #b8862a);
+    border: none; border-radius: 8px; color: var(--dark); font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(201,168,76,0.3); }
+
+  .content { padding: 28px 32px; flex: 1; }
+
+  /* PAGES */
+  .page { display: none; animation: fadeIn 0.3s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* STATS */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px; position: relative; overflow: hidden;
+  }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .stat-card.gold::before { background: linear-gradient(90deg, var(--gold), var(--gold-light)); }
+  .stat-card.green::before { background: linear-gradient(90deg, var(--green), #2ed88a); }
+  .stat-card.blue::before { background: linear-gradient(90deg, var(--blue), #88aaff); }
+  .stat-card.red::before { background: linear-gradient(90deg, var(--red), #ff8855); }
+  .stat-label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
+  .stat-value { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; }
+  .stat-sub { font-size: 0.78rem; color: var(--text-dim); margin-top: 4px; }
+  .stat-icon { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 2.5rem; opacity: 0.12; }
+
+  /* MOVIE CARDS GRID */
+  .movies-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+
+  .movie-analytics-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .movie-analytics-card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+
+  .movie-card-header {
+    padding: 20px;
+    background: linear-gradient(135deg, var(--dark3), var(--dark2));
+    border-bottom: 1px solid var(--border);
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .movie-poster-thumb {
+    width: 60px; height: 80px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--gold), #8855e8);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; flex-shrink: 0;
+  }
+  .movie-info-header { flex: 1; }
+  .movie-title-card { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700; margin-bottom: 4px; }
+  .movie-meta { font-size: 0.78rem; color: var(--text-dim); display: flex; gap: 10px; flex-wrap: wrap; }
+  .badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; background: rgba(201,168,76,0.15); color: var(--gold); border: 1px solid rgba(201,168,76,0.25); }
+  .badge.active-badge { background: rgba(85,232,160,0.12); color: var(--green); border-color: rgba(85,232,160,0.25); }
+  .badge.inactive-badge { background: rgba(232,85,85,0.1); color: var(--red); border-color: rgba(232,85,85,0.2); }
+
+  .movie-card-body { padding: 16px 20px; }
+
+  /* Total bar */
+  .seat-overview {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
+  }
+  .seat-overview-label { font-size: 0.78rem; color: var(--text-dim); }
+  .seat-overview-nums { font-size: 0.85rem; font-weight: 600; }
+  .seat-bar-wrap { background: var(--dark2); border-radius: 6px; height: 8px; margin-bottom: 16px; overflow: hidden; }
+  .seat-bar-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-light)); border-radius: 6px; transition: width 0.8s ease; }
+
+  /* Level breakdown */
+  .level-breakdown { display: flex; flex-direction: column; gap: 10px; }
+  .level-row { display: flex; align-items: center; gap: 10px; }
+  .level-name {
+    width: 60px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; flex-shrink: 0;
+  }
+  .level-name.upper { color: var(--gold); }
+  .level-name.middle { color: var(--blue); }
+  .level-name.lower { color: var(--green); }
+  .level-bar-bg { flex: 1; background: var(--dark2); border-radius: 4px; height: 6px; overflow: hidden; }
+  .level-bar { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+  .level-bar.upper { background: var(--gold); }
+  .level-bar.middle { background: var(--blue); }
+  .level-bar.lower { background: var(--green); }
+  .level-counts { font-size: 0.75rem; color: var(--text-dim); white-space: nowrap; }
+  .level-counts span { color: var(--text); font-weight: 600; }
+
+  .movie-card-footer {
+    padding: 12px 20px; background: var(--dark2); border-top: 1px solid var(--border);
+    display: flex; gap: 8px; justify-content: flex-end;
+  }
+  .btn-sm {
+    padding: 7px 14px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif;
+  }
+  .btn-detail { background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.25); color: var(--gold); }
+  .btn-detail:hover { background: rgba(201,168,76,0.2); }
+  .btn-toggle-active { background: rgba(85,232,160,0.1); border: 1px solid rgba(85,232,160,0.25); color: var(--green); }
+  .btn-toggle-inactive { background: rgba(232,85,85,0.08); border: 1px solid rgba(232,85,85,0.2); color: var(--red); }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);
+    z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--dark2); border: 1px solid var(--border); border-radius: 20px;
+    width: 100%; max-width: 700px; max-height: 90vh; overflow-y: auto;
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform: translateY(0); } }
+  .modal-header { padding: 24px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--dark2); z-index: 1; }
+  .modal-title { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; }
+  .modal-close { background: none; border: none; color: var(--text-dim); font-size: 1.5rem; cursor: pointer; line-height: 1; padding: 4px 8px; border-radius: 6px; }
+  .modal-close:hover { background: var(--dark3); color: var(--text); }
+  .modal-body { padding: 24px 28px; }
+
+  /* DETAIL: seat map */
+  .seat-stats-detail { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 24px; }
+  .seat-stat-box { background: var(--dark3); border-radius: 10px; padding: 14px; text-align: center; }
+  .seat-stat-box .val { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 700; }
+  .seat-stat-box .lbl { font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+  .seat-stat-box.gold .val { color: var(--gold); }
+  .seat-stat-box.blue .val { color: var(--blue); }
+  .seat-stat-box.green .val { color: var(--green); }
+  .seat-stat-box.red .val { color: var(--red); }
+
+  .section-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-dim); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+  .level-section { margin-bottom: 24px; }
+  .level-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .level-title { font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
+  .level-title .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot.upper { background: var(--gold); } .dot.middle { background: var(--blue); } .dot.lower { background: var(--green); }
+  .seats-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; }
+  .seat-cell {
+    aspect-ratio: 1; border-radius: 5px; display: flex; align-items: center; justify-content: center;
+    font-size: 0.55rem; font-weight: 600; transition: transform 0.15s;
+  }
+  .seat-cell.available { background: var(--dark3); border: 1px solid rgba(255,255,255,0.1); color: var(--text-dim); cursor: default; }
+  .seat-cell.booked { background: rgba(232,85,85,0.15); border: 1px solid rgba(232,85,85,0.3); color: var(--red); }
+
+  /* LEGEND */
+  .legend { display: flex; gap: 16px; margin-top: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-dim); }
+  .legend-box { width: 14px; height: 14px; border-radius: 3px; }
+  .legend-box.avail { background: var(--dark3); border: 1px solid rgba(255,255,255,0.1); }
+  .legend-box.bkd { background: rgba(232,85,85,0.15); border: 1px solid rgba(232,85,85,0.3); }
+
+  /* BOOKINGS TABLE */
+  .table-wrap { overflow-x: auto; margin-top: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+  th { text-align: left; padding: 10px 12px; color: var(--text-dim); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); }
+  td { padding: 11px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  tr:hover td { background: var(--dark3); }
+  .status-pill { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; }
+  .status-pill.confirmed { background: rgba(85,232,160,0.12); color: var(--green); }
+  .status-pill.cancelled { background: rgba(232,85,85,0.1); color: var(--red); }
+  .level-pill { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; }
+  .level-pill.upper { background: rgba(201,168,76,0.15); color: var(--gold); }
+  .level-pill.middle { background: rgba(85,136,232,0.15); color: var(--blue); }
+  .level-pill.lower { background: rgba(85,232,160,0.12); color: var(--green); }
+
+  /* ADD MOVIE FORM */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group.full { grid-column: 1/-1; }
+  .form-label { display: block; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 8px; font-weight: 600; }
+  .form-input, .form-select, .form-textarea {
+    width: 100%; padding: 12px 14px; background: var(--dark3); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.9rem; outline: none; transition: border-color 0.2s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--gold); }
+  .form-select { cursor: pointer; }
+  .form-textarea { min-height: 80px; resize: vertical; }
+  .price-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-dim); }
+  .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.5; }
+  .empty-state p { font-size: 0.9rem; }
+
+  .loader-spin { display: inline-block; width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.1); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 20px; font-size: 0.88rem; z-index: 9999;
+    transform: translateY(80px); opacity: 0; transition: all 0.3s; pointer-events: none;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-color: rgba(85,232,160,0.4); color: var(--green); }
+  .toast.error { border-color: rgba(232,85,85,0.4); color: var(--red); }
+
+  /* Overview page active movie chart */
+  .all-movies-section { margin-top: 28px; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">🎬</div>
+    <div>
+      <div class="sidebar-logo-text">CineVerse</div>
+      <div class="sidebar-logo-sub">Manager Portal</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">Main</div>
+    <button class="nav-item active" onclick="showPage('overview')">
+      <span class="nav-icon">📊</span> Dashboard
+    </button>
+    <button class="nav-item" onclick="showPage('movies')">
+      <span class="nav-icon">🎬</span> Movies
+    </button>
+
+    <div class="nav-section">Management</div>
+    <button class="nav-item" onclick="showPage('addMovie')">
+      <span class="nav-icon">➕</span> Add Movie
+    </button>
+    <button class="nav-item" onclick="showPage('allBookings')">
+      <span class="nav-icon">🎟️</span> All Bookings
+    </button>
+  </nav>
+
+  <div class="sidebar-bottom">
+    <div class="user-info">
+      <div class="user-avatar" id="userInitial">M</div>
+      <div>
+        <div class="user-name" id="userName">Manager</div>
+        <div class="user-role">🔑 Manager</div>
+      </div>
+    </div>
+    <button class="btn-logout" onclick="logout()">← Sign Out</button>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="pageTitle">Dashboard Overview</div>
+      <div class="topbar-sub" id="pageSubtitle">Cinema analytics & seat management</div>
+    </div>
+    <button class="btn-gold" onclick="showPage('addMovie')">
+      ＋ Add Movie
+    </button>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW PAGE -->
+    <div class="page active" id="page-overview">
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card gold"><div class="stat-label">Total Movies</div><div class="stat-value" id="s-movies">—</div><div class="stat-sub">Active shows</div><div class="stat-icon">🎬</div></div>
+        <div class="stat-card green"><div class="stat-label">Total Seats</div><div class="stat-value" id="s-seats">—</div><div class="stat-sub">Across all movies</div><div class="stat-icon">💺</div></div>
+        <div class="stat-card blue"><div class="stat-label">Booked</div><div class="stat-value" id="s-booked">—</div><div class="stat-sub">Confirmed seats</div><div class="stat-icon">✅</div></div>
+        <div class="stat-card red"><div class="stat-label">Revenue</div><div class="stat-value" id="s-revenue">—</div><div class="stat-sub">Total earnings</div><div class="stat-icon">💰</div></div>
+      </div>
+
+      <div class="all-movies-section">
+        <div class="section-title">All Movies — Seat Overview</div>
+        <div class="movies-grid" id="overviewMoviesGrid"></div>
+      </div>
+    </div>
+
+    <!-- MOVIES PAGE -->
+    <div class="page" id="page-movies">
+      <div class="movies-grid" id="moviesGrid"></div>
+    </div>
+
+    <!-- ADD MOVIE PAGE -->
+    <div class="page" id="page-addMovie">
+      <div style="max-width: 700px;">
+        <div style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 32px;">
+          <div id="addAlert" style="display:none; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 0.88rem;"></div>
+          <div class="form-grid">
+            <div class="form-group full">
+              <label class="form-label">Movie Title</label>
+              <input type="text" class="form-input" id="m-title" placeholder="e.g. Avengers: Infinity War">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Genre</label>
+              <input type="text" class="form-input" id="m-genre" placeholder="e.g. Action / Sci-Fi">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Language</label>
+              <select class="form-select" id="m-language">
+                <option>English</option><option>Tamil</option><option>Hindi</option><option>Telugu</option><option>Malayalam</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Duration (minutes)</label>
+              <input type="number" class="form-input" id="m-duration" placeholder="e.g. 148">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Rating</label>
+              <select class="form-select" id="m-rating">
+                <option>U</option><option>U/A</option><option>A</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Show Date</label>
+              <input type="date" class="form-input" id="m-date">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Show Time</label>
+              <input type="time" class="form-input" id="m-time">
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Description</label>
+              <textarea class="form-textarea" id="m-desc" placeholder="Brief movie description..."></textarea>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Ticket Prices (₹)</label>
+              <div class="price-grid">
+                <div>
+                  <label class="form-label" style="color: var(--gold);">🥇 Upper</label>
+                  <input type="number" class="form-input" id="m-price-upper" value="300">
+                </div>
+                <div>
+                  <label class="form-label" style="color: var(--blue);">🥈 Middle</label>
+                  <input type="number" class="form-input" id="m-price-middle" value="200">
+                </div>
+                <div>
+                  <label class="form-label" style="color: var(--green);">🥉 Lower</label>
+                  <input type="number" class="form-input" id="m-price-lower" value="150">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 8px;">
+            <button class="btn-gold" onclick="addMovie()" id="addMovieBtn">Add Movie</button>
+            <button onclick="resetForm()" style="padding: 10px 20px; background: var(--dark2); border: 1px solid var(--border); border-radius: 8px; color: var(--text-dim); cursor: pointer; font-family: 'DM Sans', sans-serif;">Reset</button>
+          </div>
+          <p style="font-size: 0.78rem; color: var(--text-dim); margin-top: 16px;">ℹ️ Seats will be auto-generated: 30 Upper (A–C × 10), 40 Middle (D–G × 10), 50 Lower (H–L × 10)</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALL BOOKINGS PAGE -->
+    <div class="page" id="page-allBookings">
+      <div id="allBookingsContent"></div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ANALYTICS MODAL -->
+<div class="modal-overlay" id="analyticsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalMovieTitle">Movie Analytics</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <div style="text-align:center; padding: 40px;"><div class="loader-spin"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let allMovies = [];
+let currentUser = null;
+
+// ─── NAV ────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.toLowerCase().includes(name.toLowerCase().replace(/([A-Z])/g, ' $1').toLowerCase())) n.classList.add('active');
+  });
+  const titles = { overview: ['Dashboard Overview','Cinema analytics & seat management'], movies: ['Movies','All shows & availability'], addMovie: ['Add New Movie','Create a new show'], allBookings: ['All Bookings','Complete booking records'] };
+  const t = titles[name] || ['Manager',''];
+  document.getElementById('pageTitle').textContent = t[0];
+  document.getElementById('pageSubtitle').textContent = t[1];
+  if (name === 'allBookings') loadAllBookings();
+}
+
+// ─── AUTH ────────────────────────────────────────────────
+async function init() {
+  try {
+    const res = await fetch('/api/auth/me', { credentials: 'include' });
+    if (!res.ok) { window.location.href = '/'; return; }
+    const { user } = await res.json();
+    if (user.role !== 'manager') { window.location.href = '/user'; return; }
+    currentUser = user;
+    document.getElementById('userName').textContent = user.name;
+    document.getElementById('userInitial').textContent = user.name[0].toUpperCase();
+    loadData();
+  } catch { window.location.href = '/'; }
+}
+
+async function logout() {
+  await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+  window.location.href = '/';
+}
+
+// ─── DATA ────────────────────────────────────────────────
+async function loadData() {
+  try {
+    const res = await fetch('/api/movies/all/list', { credentials: 'include' });
+    allMovies = await res.json();
+    renderOverview();
+    renderMoviesGrid();
+  } catch (e) { showToast('Failed to load data', 'error'); }
+}
+
+function renderOverview() {
+  const total = allMovies.filter(m => m.is_active).length;
+  const seats = allMovies.reduce((a, m) => a + (m.total_seats || 0), 0);
+  const booked = allMovies.reduce((a, m) => a + (m.booked_seats || 0), 0);
+  const revenue = allMovies.reduce((a, m) => a + parseFloat(m.total_revenue || 0), 0);
+  document.getElementById('s-movies').textContent = total;
+  document.getElementById('s-seats').textContent = seats;
+  document.getElementById('s-booked').textContent = booked;
+  document.getElementById('s-revenue').textContent = '₹' + revenue.toLocaleString('en-IN');
+  document.getElementById('overviewMoviesGrid').innerHTML = allMovies.map(m => movieCard(m)).join('');
+}
+
+function renderMoviesGrid() {
+  document.getElementById('moviesGrid').innerHTML = allMovies.length
+    ? allMovies.map(m => movieCard(m)).join('')
+    : '<div class="empty-state"><div class="empty-icon">🎬</div><p>No movies yet. Add your first movie!</p></div>';
+}
+
+function movieCard(m) {
+  const total = m.total_seats || 0;
+  const booked = m.booked_seats || 0;
+  const avail = m.available_seats || 0;
+  const pct = total ? Math.round((booked / total) * 100) : 0;
+  const genres = ['🎭', '🚀', '🔥', '💀', '😂', '❤️', '🎯', '⚔️'];
+  const emoji = genres[m.id % genres.length];
+  const isActive = m.is_active;
+
+  return `<div class="movie-analytics-card">
+    <div class="movie-card-header">
+      <div class="movie-poster-thumb">${emoji}</div>
+      <div class="movie-info-header">
+        <div class="movie-title-card">${m.title}</div>
+        <div class="movie-meta" style="margin-top:6px; margin-bottom:8px;">
+          <span>${m.language}</span> · <span>${m.duration}min</span> · <span>${m.rating}</span>
+        </div>
+        <div>
+          <span class="badge ${isActive ? 'active-badge' : 'inactive-badge'}">${isActive ? '● Active' : '● Inactive'}</span>
+          <span class="badge" style="margin-left:4px;">${formatDateTime(m.show_date, m.show_time)}</span>
+        </div>
+      </div>
+    </div>
+    <div class="movie-card-body">
+      <div class="seat-overview">
+        <span class="seat-overview-label">Overall Occupancy</span>
+        <span class="seat-overview-nums">${booked}/${total} <span style="color:var(--gold);font-weight:700;">(${pct}%)</span></span>
+      </div>
+      <div class="seat-bar-wrap"><div class="seat-bar-fill" style="width:${pct}%"></div></div>
+
+      <div class="level-breakdown">
+        <div style="font-size:0.72rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:6px;">By Level</div>
+        ${['upper','middle','lower'].map(lvl => `
+        <div class="level-row" id="lvl-${m.id}-${lvl}">
+          <div class="level-name ${lvl}">${lvl}</div>
+          <div class="level-bar-bg"><div class="level-bar ${lvl}" style="width:0%" id="bar-${m.id}-${lvl}"></div></div>
+          <div class="level-counts" id="cnt-${m.id}-${lvl}">loading…</div>
+        </div>`).join('')}
+      </div>
+      <div class="legend" style="margin-top:12px;">
+        <div class="legend-item"><div class="legend-box avail"></div> Available</div>
+        <div class="legend-item"><div class="legend-box bkd"></div> Booked</div>
+        <div style="margin-left:auto; font-size:0.75rem; color:var(--text-dim);">Revenue: <span style="color:var(--gold);font-weight:700;">₹${parseFloat(m.total_revenue||0).toLocaleString('en-IN')}</span></div>
+      </div>
+    </div>
+    <div class="movie-card-footer">
+      <button class="btn-sm btn-detail" onclick="openAnalytics(${m.id})">📊 Details</button>
+      <button class="btn-sm ${isActive ? 'btn-toggle-inactive' : 'btn-toggle-active'}" onclick="toggleMovie(${m.id})">
+        ${isActive ? '🔴 Deactivate' : '🟢 Activate'}
+      </button>
+    </div>
+  </div>`;
+}
+
+// Load level stats for all cards
+async function loadLevelStats() {
+  for (const m of allMovies) {
+    try {
+      const res = await fetch(`/api/movies/${m.id}/seats`, { credentials: 'include' });
+      const data = await res.json();
+      data.stats.forEach(s => {
+        const pct = s.total ? Math.round((s.booked / s.total) * 100) : 0;
+        const bar = document.getElementById(`bar-${m.id}-${s.seat_level}`);
+        const cnt = document.getElementById(`cnt-${m.id}-${s.seat_level}`);
+        if (bar) bar.style.width = pct + '%';
+        if (cnt) cnt.innerHTML = `<span>${s.booked}</span>/${s.total} booked`;
+      });
+    } catch {}
+  }
+}
+
+// ─── ANALYTICS MODAL ───────────────────────────────────
+async function openAnalytics(movieId) {
+  document.getElementById('analyticsModal').classList.add('open');
+  document.getElementById('modalBody').innerHTML = '<div style="text-align:center;padding:40px;"><div class="loader-spin"></div><p style="margin-top:12px;color:var(--text-dim);">Loading analytics…</p></div>';
+
+  try {
+    const res = await fetch(`/api/movies/${movieId}/analytics`, { credentials: 'include' });
+    const data = await res.json();
+    document.getElementById('modalMovieTitle').textContent = data.movie.title;
+    renderModal(data);
+  } catch { document.getElementById('modalBody').innerHTML = '<p style="color:var(--red);">Failed to load analytics</p>'; }
+}
+
+function renderModal(data) {
+  const { movie, levelStats, recentBookings, seats } = data;
+  const totalBooked = levelStats.reduce((a, s) => a + s.booked, 0);
+  const totalSeats = levelStats.reduce((a, s) => a + s.total, 0);
+  const totalRevenue = levelStats.reduce((a, s) => a + parseFloat(s.revenue||0), 0);
+
+  // Group seats by level
+  const byLevel = {};
+  seats.forEach(s => {
+    if (!byLevel[s.seat_level]) byLevel[s.seat_level] = [];
+    byLevel[s.seat_level].push(s);
+  });
+
+  const levelColors = { upper: 'var(--gold)', middle: 'var(--blue)', lower: 'var(--green)' };
+  const levelPrices = { upper: movie.price_upper, middle: movie.price_middle, lower: movie.price_lower };
+
+  document.getElementById('modalBody').innerHTML = `
+    <div class="seat-stats-detail">
+      <div class="seat-stat-box gold"><div class="val">${totalSeats}</div><div class="lbl">Total Seats</div></div>
+      <div class="seat-stat-box blue"><div class="val">${totalBooked}</div><div class="lbl">Booked</div></div>
+      <div class="seat-stat-box green"><div class="val">${totalSeats - totalBooked}</div><div class="lbl">Available</div></div>
+      <div class="seat-stat-box red" style="grid-column: span 3 / auto; display: flex; align-items: center; justify-content: space-between; flex-direction: row; padding: 14px 20px;">
+        <div><div class="lbl">Total Revenue</div><div class="val" style="color:var(--gold); font-size:1.4rem;">₹${totalRevenue.toLocaleString('en-IN')}</div></div>
+        <div style="text-align:right"><div class="lbl">Occupancy</div><div class="val" style="font-size:1.4rem;">${totalSeats ? Math.round((totalBooked/totalSeats)*100) : 0}%</div></div>
+      </div>
+    </div>
+
+    <div class="section-title">Seat Map by Level</div>
+
+    ${['upper','middle','lower'].map(level => {
+      const s = levelStats.find(x => x.seat_level === level) || { total:0, booked:0, available:0 };
+      const seatList = byLevel[level] || [];
+      return `
+      <div class="level-section">
+        <div class="level-header">
+          <div class="level-title">
+            <span class="dot ${level}"></span>
+            ${level.charAt(0).toUpperCase()+level.slice(1)} Level
+            <span style="font-weight:400; font-size:0.8rem; color:var(--text-dim);">₹${levelPrices[level]}/seat</span>
+          </div>
+          <div style="font-size:0.82rem; color:var(--text-dim);">
+            <span style="color:${levelColors[level]}; font-weight:700;">${s.booked}</span> booked /
+            <span style="color:var(--green); font-weight:700;">${s.available}</span> available
+            (${s.total} total)
+          </div>
+        </div>
+        <div class="seats-grid">
+          ${seatList.map(seat => `<div class="seat-cell ${seat.is_booked ? 'booked' : 'available'}" title="${seat.seat_number} – ${seat.is_booked ? 'Booked' : 'Available'}">${seat.seat_number}</div>`).join('')}
+        </div>
+      </div>`;
+    }).join('')}
+
+    <div class="legend" style="margin-bottom:24px;">
+      <div class="legend-item"><div class="legend-box avail"></div> Available</div>
+      <div class="legend-item"><div class="legend-box bkd"></div> Booked</div>
+    </div>
+
+    <div class="section-title">Recent Bookings (Last 20)</div>
+    ${recentBookings.length ? `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Ref</th><th>Customer</th><th>Level</th><th>Seat</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead>
+        <tbody>
+          ${recentBookings.map(b => `
+          <tr>
+            <td style="font-family:monospace; color:var(--gold); font-size:0.8rem;">${b.booking_reference}</td>
+            <td><div>${b.user_name}</div><div style="font-size:0.75rem; color:var(--text-dim);">${b.email}</div></td>
+            <td><span class="level-pill ${b.seat_level}">${b.seat_level}</span></td>
+            <td style="font-family:monospace; font-weight:700;">${b.seat_number}</td>
+            <td style="color:var(--gold); font-weight:700;">₹${b.total_amount}</td>
+            <td style="font-size:0.78rem; color:var(--text-dim);">${new Date(b.booking_date).toLocaleDateString('en-IN')}</td>
+            <td><span class="status-pill ${b.status}">${b.status}</span></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>` : '<p style="color:var(--text-dim); font-size:0.88rem;">No bookings yet for this movie.</p>'}
+  `;
+}
+
+function closeModal() {
+  document.getElementById('analyticsModal').classList.remove('open');
+}
+
+// ─── TOGGLE MOVIE ───────────────────────────────────────
+async function toggleMovie(id) {
+  try {
+    await fetch(`/api/movies/${id}/toggle`, { method: 'PATCH', credentials: 'include' });
+    showToast('Movie status updated', 'success');
+    loadData();
+  } catch { showToast('Failed to update', 'error'); }
+}
+
+// ─── ADD MOVIE ──────────────────────────────────────────
+async function addMovie() {
+  const title = document.getElementById('m-title').value.trim();
+  const genre = document.getElementById('m-genre').value.trim();
+  const duration = document.getElementById('m-duration').value;
+  const language = document.getElementById('m-language').value;
+  const rating = document.getElementById('m-rating').value;
+  const show_date = document.getElementById('m-date').value;
+  const show_time = document.getElementById('m-time').value;
+  const description = document.getElementById('m-desc').value.trim();
+  const price_upper = document.getElementById('m-price-upper').value;
+  const price_middle = document.getElementById('m-price-middle').value;
+  const price_lower = document.getElementById('m-price-lower').value;
+
+  if (!title || !genre || !duration || !show_date || !show_time) {
+    showAddAlert('Please fill required fields: Title, Genre, Duration, Date & Time', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('addMovieBtn');
+  btn.innerHTML = 'Adding… <span class="loader-spin" style="width:14px;height:14px;border-width:2px;"></span>';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/movies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ title, genre, duration, language, rating, show_date, show_time, description, price_upper, price_middle, price_lower })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    showAddAlert('✓ Movie added with 120 seats generated!', 'success');
+    resetForm();
+    loadData();
+    setTimeout(() => showPage('movies'), 2000);
+  } catch (e) {
+    showAddAlert(e.message || 'Failed to add movie', 'error');
+  } finally {
+    btn.innerHTML = 'Add Movie';
+    btn.disabled = false;
+  }
+}
+
+function showAddAlert(msg, type) {
+  const el = document.getElementById('addAlert');
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.background = type === 'success' ? 'rgba(85,232,160,0.1)' : 'rgba(232,85,85,0.1)';
+  el.style.border = `1px solid ${type === 'success' ? 'rgba(85,232,160,0.3)' : 'rgba(232,85,85,0.3)'}`;
+  el.style.color = type === 'success' ? 'var(--green)' : 'var(--red)';
+  el.style.borderRadius = '8px';
+  el.style.padding = '12px 16px';
+  el.style.fontSize = '0.88rem';
+}
+
+function resetForm() {
+  ['m-title','m-genre','m-duration','m-date','m-time','m-desc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('m-price-upper').value = '300';
+  document.getElementById('m-price-middle').value = '200';
+  document.getElementById('m-price-lower').value = '150';
+  document.getElementById('addAlert').style.display = 'none';
+}
+
+// ─── ALL BOOKINGS ───────────────────────────────────────
+async function loadAllBookings() {
+  document.getElementById('allBookingsContent').innerHTML = '<div style="text-align:center;padding:40px;"><div class="loader-spin"></div></div>';
+  try {
+    const moviesRes = await fetch('/api/movies/all/list', { credentials: 'include' });
+    const movies = await moviesRes.json();
+
+    let html = '';
+    for (const m of movies) {
+      const res = await fetch(`/api/movies/${m.id}/analytics`, { credentials: 'include' });
+      const data = await res.json();
+      html += `
+        <div style="background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:20px; overflow:hidden;">
+          <div style="padding:16px 20px; background:var(--dark2); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <span style="font-family:'Playfair Display',serif; font-size:1.05rem; font-weight:700;">${m.title}</span>
+              <span style="margin-left:10px; font-size:0.78rem; color:var(--text-dim);">${formatDateTime(m.show_date, m.show_time)}</span>
+            </div>
+            <div style="font-size:0.82rem; color:var(--text-dim);">
+              ${data.recentBookings.filter(b=>b.status==='confirmed').length} confirmed bookings
+            </div>
+          </div>
+          <div class="table-wrap" style="padding:0 20px 16px;">
+            ${data.recentBookings.length ? `
+            <table style="margin-top:12px;">
+              <thead><tr><th>Ref</th><th>Customer</th><th>Email</th><th>Level</th><th>Seat</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead>
+              <tbody>
+                ${data.recentBookings.map(b => `
+                <tr>
+                  <td style="font-family:monospace;color:var(--gold);font-size:0.78rem;">${b.booking_reference}</td>
+                  <td>${b.user_name}</td>
+                  <td style="color:var(--text-dim);font-size:0.8rem;">${b.email}</td>
+                  <td><span class="level-pill ${b.seat_level}">${b.seat_level}</span></td>
+                  <td style="font-family:monospace;font-weight:700;">${b.seat_number}</td>
+                  <td style="color:var(--gold);font-weight:700;">₹${b.total_amount}</td>
+                  <td style="font-size:0.78rem;color:var(--text-dim);">${new Date(b.booking_date).toLocaleDateString('en-IN')}</td>
+                  <td><span class="status-pill ${b.status}">${b.status}</span></td>
+                </tr>`).join('')}
+              </tbody>
+            </table>` : '<p style="padding:16px 0; color:var(--text-dim); font-size:0.88rem;">No bookings for this movie yet.</p>'}
+          </div>
+        </div>`;
+    }
+    document.getElementById('allBookingsContent').innerHTML = html || '<div class="empty-state"><div class="empty-icon">📋</div><p>No data available</p></div>';
+  } catch { document.getElementById('allBookingsContent').innerHTML = '<p style="color:var(--red);">Failed to load bookings</p>'; }
+}
+
+// ─── UTILS ──────────────────────────────────────────────
+function formatDateTime(date, time) {
+  if (!date) return '—';
+  const d = new Date(date);
+  const opts = { month: 'short', day: 'numeric' };
+  return d.toLocaleDateString('en-IN', opts) + (time ? ' ' + time.substring(0,5) : '');
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+document.getElementById('analyticsModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// Init
+init().then(() => {
+  setTimeout(loadLevelStats, 500);
+});
+</script>
+</body>
+</html>

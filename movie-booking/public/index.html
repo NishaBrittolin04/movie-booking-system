@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CineVerse — Movie Ticket Booking</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --gold: #c9a84c;
+    --gold-light: #e8c878;
+    --dark: #0a0a0f;
+    --dark2: #12121a;
+    --dark3: #1a1a26;
+    --card: #1e1e2e;
+    --border: rgba(201, 168, 76, 0.2);
+    --text: #e8e8f0;
+    --text-dim: #8888a8;
+    --red: #e85555;
+    --green: #55e8a0;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Cinematic background */
+  .bg-layer {
+    position: fixed; inset: 0; z-index: 0;
+    background: 
+      radial-gradient(ellipse 80% 60% at 20% 30%, rgba(201,168,76,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 80% at 80% 70%, rgba(100,60,180,0.08) 0%, transparent 60%),
+      var(--dark);
+  }
+
+  .film-strip {
+    position: fixed;
+    top: 0; bottom: 0;
+    width: 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    opacity: 0.06;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .film-strip.left { left: 0; }
+  .film-strip.right { right: 0; }
+  .film-hole {
+    width: 100%;
+    aspect-ratio: 1;
+    border: 3px solid #fff;
+    border-radius: 4px;
+    margin: 8px 8px;
+    flex-shrink: 0;
+  }
+
+  .main-container {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 480px;
+    padding: 20px;
+    animation: fadeUp 0.8s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .logo-wrap {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .logo-icon {
+    width: 70px; height: 70px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 32px;
+    box-shadow: 0 0 40px rgba(201,168,76,0.3);
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 40px rgba(201,168,76,0.3); }
+    50% { box-shadow: 0 0 60px rgba(201,168,76,0.5), 0 0 80px rgba(201,168,76,0.2); }
+  }
+
+  .logo-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.4rem;
+    font-weight: 900;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, var(--gold-light), var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .logo-subtitle {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* Role selection */
+  .role-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 28px;
+    background: var(--dark2);
+    padding: 6px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+  }
+
+  .role-tab {
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+
+  .role-tab.active {
+    background: var(--card);
+    color: var(--gold);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+
+  /* Card */
+  .auth-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    backdrop-filter: blur(10px);
+  }
+
+  .card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .card-desc {
+    color: var(--text-dim);
+    font-size: 0.88rem;
+    margin-bottom: 28px;
+  }
+
+  .form-group {
+    margin-bottom: 18px;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--dark2);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+
+  .form-input:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
+  }
+
+  .btn-primary {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, var(--gold), #b8862a);
+    border: none;
+    border-radius: 10px;
+    color: var(--dark);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 8px;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(201,168,76,0.3);
+  }
+
+  .btn-primary:active { transform: translateY(0); }
+
+  .divider {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    margin: 18px 0;
+    position: relative;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 35%;
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+  }
+  .divider::before { left: 0; }
+  .divider::after { right: 0; }
+
+  .link-btn {
+    background: none; border: none;
+    color: var(--gold);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+  }
+
+  .alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 0.88rem;
+    display: none;
+  }
+  .alert.error { background: rgba(232,85,85,0.12); border: 1px solid rgba(232,85,85,0.3); color: #e85555; }
+  .alert.success { background: rgba(85,232,160,0.12); border: 1px solid rgba(85,232,160,0.3); color: #55e8a0; }
+  .alert.show { display: block; }
+
+  .loader {
+    display: inline-block;
+    width: 18px; height: 18px;
+    border: 2px solid rgba(10,10,15,0.3);
+    border-top-color: var(--dark);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-left: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Info badges */
+  .demo-creds {
+    margin-top: 20px;
+    background: var(--dark2);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 0.8rem;
+  }
+  .demo-creds p { color: var(--text-dim); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 0.72rem; }
+  .demo-creds .cred { color: var(--text); font-family: monospace; font-size: 0.82rem; }
+
+  /* Panels */
+  #loginPanel, #registerPanel { display: none; }
+  #loginPanel.visible, #registerPanel.visible { display: block; }
+</style>
+</head>
+<body>
+
+<div class="bg-layer"></div>
+
+<div class="film-strip left">
+  <script>for(let i=0;i<30;i++) document.write('<div class="film-hole"></div>');</script>
+</div>
+<div class="film-strip right">
+  <script>for(let i=0;i<30;i++) document.write('<div class="film-hole"></div>');</script>
+</div>
+
+<div class="main-container">
+  <div class="logo-wrap">
+    <div class="logo-icon">🎬</div>
+    <div class="logo-title">CineVerse</div>
+    <div class="logo-subtitle">Premium Cinema Experience</div>
+  </div>
+
+  <div class="role-tabs">
+    <button class="role-tab active" id="userTab" onclick="setRole('user')">
+      🎟️ Customer
+    </button>
+    <button class="role-tab" id="managerTab" onclick="setRole('manager')">
+      📊 Manager
+    </button>
+  </div>
+
+  <div class="auth-card">
+    <div id="alert" class="alert"></div>
+
+    <!-- Login Panel -->
+    <div id="loginPanel" class="visible">
+      <div class="card-title" id="loginTitle">Welcome Back</div>
+      <div class="card-desc" id="loginDesc">Sign in to book your seats</div>
+
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" class="form-input" id="loginEmail" placeholder="you@email.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" class="form-input" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+      </div>
+
+      <button class="btn-primary" onclick="login()" id="loginBtn">Sign In</button>
+
+      <div id="registerToggle">
+        <div class="divider">New here?</div>
+        <div style="text-align:center">
+          <button class="link-btn" onclick="showPanel('register')">Create an account</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Register Panel -->
+    <div id="registerPanel">
+      <div class="card-title">Create Account</div>
+      <div class="card-desc">Join CineVerse to start booking</div>
+
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input type="text" class="form-input" id="regName" placeholder="Your name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" class="form-input" id="regEmail" placeholder="you@email.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" class="form-input" id="regPassword" placeholder="Min 6 characters" onkeydown="if(event.key==='Enter')register()">
+      </div>
+
+      <button class="btn-primary" onclick="register()" id="registerBtn">Create Account</button>
+
+      <div class="divider">Already have one?</div>
+      <div style="text-align:center">
+        <button class="link-btn" onclick="showPanel('login')">Sign in instead</button>
+      </div>
+    </div>
+
+    <div class="demo-creds" id="demoCreds">
+      <p>Demo Credentials</p>
+      <div class="cred" id="demoText">john@email.com / password</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentRole = 'user';
+
+function setRole(role) {
+  currentRole = role;
+  document.getElementById('userTab').classList.toggle('active', role === 'user');
+  document.getElementById('managerTab').classList.toggle('active', role === 'manager');
+
+  if (role === 'manager') {
+    document.getElementById('loginTitle').textContent = 'Manager Portal';
+    document.getElementById('loginDesc').textContent = 'Sign in to manage movies & bookings';
+    document.getElementById('registerToggle').style.display = 'none';
+    document.getElementById('demoText').textContent = 'manager@cinema.com / password';
+  } else {
+    document.getElementById('loginTitle').textContent = 'Welcome Back';
+    document.getElementById('loginDesc').textContent = 'Sign in to book your seats';
+    document.getElementById('registerToggle').style.display = 'block';
+    document.getElementById('demoText').textContent = 'john@email.com / password';
+  }
+  showPanel('login');
+  clearAlert();
+}
+
+function showPanel(panel) {
+  document.getElementById('loginPanel').classList.toggle('visible', panel === 'login');
+  document.getElementById('registerPanel').classList.toggle('visible', panel === 'register');
+  document.getElementById('demoCreds').style.display = panel === 'login' ? 'block' : 'none';
+  clearAlert();
+}
+
+function showAlert(msg, type) {
+  const el = document.getElementById('alert');
+  el.textContent = msg;
+  el.className = `alert ${type} show`;
+}
+
+function clearAlert() {
+  document.getElementById('alert').className = 'alert';
+}
+
+async function login() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) return showAlert('Please fill in all fields', 'error');
+
+  const btn = document.getElementById('loginBtn');
+  btn.innerHTML = 'Signing in <span class="loader"></span>';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+      credentials: 'include'
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showAlert(data.error || 'Login failed', 'error');
+    } else {
+      if (data.role === 'manager') {
+        window.location.href = '/manager';
+      } else {
+        window.location.href = '/user';
+      }
+    }
+  } catch {
+    showAlert('Connection error. Is the server running?', 'error');
+  } finally {
+    btn.innerHTML = 'Sign In';
+    btn.disabled = false;
+  }
+}
+
+async function register() {
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value;
+  if (!name || !email || !password) return showAlert('Please fill in all fields', 'error');
+  if (password.length < 6) return showAlert('Password must be at least 6 characters', 'error');
+
+  const btn = document.getElementById('registerBtn');
+  btn.innerHTML = 'Creating... <span class="loader"></span>';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password }),
+      credentials: 'include'
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showAlert(data.error || 'Registration failed', 'error');
+    } else {
+      showAlert('Account created! Please sign in.', 'success');
+      setTimeout(() => showPanel('login'), 1500);
+    }
+  } catch {
+    showAlert('Connection error', 'error');
+  } finally {
+    btn.innerHTML = 'Create Account';
+    btn.disabled = false;
+  }
+}
+
+// Check if already logged in
+(async () => {
+  try {
+    const res = await fetch('/api/auth/me', { credentials: 'include' });
+    if (res.ok) {
+      const { user } = await res.json();
+      window.location.href = user.role === 'manager' ? '/manager' : '/user';
+    }
+  } catch {}
+})();
+</script>
+</body>
+</html>
